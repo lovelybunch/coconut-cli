@@ -1,0 +1,56 @@
+{
+  "name": "coconut",
+  "version": "0.1.0",
+  "description": "The Coconut Context CLI (`coco`) — pages, structured metadata, search, typed records, spaces, and space agents from your terminal.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "coco": "./dist/index.js",
+    "coconut": "./dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.34.5",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovelybunch/coconut-cli.git"
+  },
+  "homepage": "https://github.com/lovelybunch/coconut-cli#readme",
+  "bugs": "https://github.com/lovelybunch/coconut-cli/issues",
+  "keywords": [
+    "coconut",
+    "coconut-sdk",
+    "cli",
+    "coco",
+    "context",
+    "knowledge",
+    "agents"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "tsc --noEmit -p tsconfig.lint.json",
+    "dev": "node --import tsx src/index.ts",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "coconut-sdk": "^0.1.0",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
