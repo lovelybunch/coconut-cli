@@ -139,8 +139,10 @@ coco whoami · coco health
 ```
 
 Filter syntax (`--filter`, AND-ed): `k=v` `k!=v` `k>v` `k>=v` `k<v` `k<=v`
-`k~v` (contains) `k:exists` `k:missing`. Values are JSON-parsed when they
-look like JSON (`0.7` is a number, `"0.7"` a string, `true` a boolean).
+`k~v` (contains) `k in a,b` `k not-in a,b` `k:exists` `k:missing`. Values are
+JSON-parsed when they look like JSON (`0.7` is a number, `"0.7"` a string,
+`true` a boolean); `in` / `not-in` take a comma-separated list or a JSON
+array (`stage in sourcing,diligence`, `score in [1,2]`).
 The same rule applies to `--metadata` / `--set` values, and `--set k=null`
 deletes a key.
 

@@ -5,11 +5,15 @@
 //   conviction-score>=0.7    gte       conviction-score>0.5   gt
 //   ebitda-multiple<=8       lte       ebitda-multiple<10     lt
 //   sources~news.example     contains  flags:exists           exists
+//   stage in sourcing,diligence   in   stage not-in closed,lost   not-in
 //   flags:missing            missing
 //
 // Values are JSON-parsed when they look like JSON (numbers, booleans, null,
 // arrays, quoted strings), so `score>=0.7` compares numerically while
 // `stage=diligence` stays a string. Quote to force a string: `x="0.7"`.
+// `in` / `not-in` take a comma-separated list (each item parsed by the same
+// rule) or a JSON array literal: `score in 1,2` and `score in [1,2]` both
+// mean "score is 1 or 2".
 
 import type { MetadataFilter, MetadataFilterOp } from "coconut-sdk";
 import { CliError, EXIT } from "./errors.js";
@@ -27,8 +31,34 @@ const COMPARISON_OPS: Array<{ token: string; op: MetadataFilterOp }> = [
   { token: "~", op: "contains" },
 ];
 
+// Word operators are whitespace-delimited (`stage in a,b`). Keys never
+// contain whitespace, so the surrounding spaces keep `in` from matching
+// inside a key, and the earliest-operator rule keeps it out of values like
+// `note=check in later`.
+const LIST_OP_PATTERN = /\s+(in|not-in)\s+/;
+
 // Mirrors the API's metadata key rule (letters, digits, "_", ".", "-").
 const KEY_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+
+interface OperatorMatch {
+  index: number;
+  length: number;
+  op: MetadataFilterOp;
+}
+
+function findOperator(expression: string): OperatorMatch | undefined {
+  let match: OperatorMatch | undefined;
+  for (const { token, op } of COMPARISON_OPS) {
+    const index = expression.indexOf(token);
+    if (index <= 0) continue;
+    if (!match || index < match.index) match = { index, length: token.length, op };
+  }
+  const list = LIST_OP_PATTERN.exec(expression);
+  if (list && (!match || list.index < match.index)) {
+    match = { index: list.index, length: list[0].length, op: list[1] as MetadataFilterOp };
+  }
+  return match;
+}
 
 function checkKey(key: string, expression: string): string {
   if (!KEY_PATTERN.test(key)) {
@@ -47,12 +77,7 @@ export function parseFilter(expression: string): MetadataFilter {
     throw new CliError("Empty --filter expression.", EXIT.usage);
   }
 
-  let match: { index: number; token: string; op: MetadataFilterOp } | undefined;
-  for (const { token, op } of COMPARISON_OPS) {
-    const index = trimmed.indexOf(token);
-    if (index <= 0) continue;
-    if (!match || index < match.index) match = { index, token, op };
-  }
+  const match = findOperator(trimmed);
 
   // `key:exists` / `key:missing` — but only when no comparison operator
   // precedes the suffix, so `note=see:exists` stays an eq on a string value.
@@ -66,18 +91,21 @@ export function parseFilter(expression: string): MetadataFilter {
 
   if (match) {
     const key = checkKey(trimmed.slice(0, match.index).trim(), expression);
-    const rawValue = trimmed.slice(match.index + match.token.length).trim();
+    const rawValue = trimmed.slice(match.index + match.length).trim();
     if (rawValue === "") {
       throw new CliError(
         `Missing value in filter "${expression}" (use "${key}:exists" / "${key}:missing" to test presence).`,
         EXIT.usage,
       );
     }
+    if (match.op === "in" || match.op === "not-in") {
+      return { key, op: match.op, value: parseList(rawValue, expression) };
+    }
     return { key, op: match.op, value: parseScalar(rawValue) };
   }
 
   throw new CliError(
-    `Cannot parse filter "${expression}". Expected key=value, key!=value, key>value, key>=value, key<value, key<=value, key~value, key:exists, or key:missing.`,
+    `Cannot parse filter "${expression}". Expected key=value, key!=value, key>value, key>=value, key<value, key<=value, key~value, key in a,b, key not-in a,b, key:exists, or key:missing.`,
     EXIT.usage,
   );
 }
@@ -93,4 +121,35 @@ export function parseScalar(raw: string): unknown {
   } catch {
     return raw;
   }
+}
+
+/**
+ * The list value of an `in` / `not-in` filter. Valid JSON is taken as-is
+ * (an array literal, or one scalar wrapped as a single candidate — so
+ * `"a,b"` stays one string); anything else splits on commas, each item
+ * following the parseScalar rule.
+ */
+export function parseList(raw: string, expression: string): unknown[] {
+  let json: unknown;
+  let isJson = true;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    isJson = false;
+  }
+  if (isJson) {
+    if (!Array.isArray(json)) return [json];
+    if (json.length === 0) {
+      throw new CliError(`Empty list in filter "${expression}".`, EXIT.usage);
+    }
+    return json;
+  }
+  const items = raw.split(",").map((item) => item.trim());
+  if (items.some((item) => item === "")) {
+    throw new CliError(
+      `Empty list item in filter "${expression}" (use a JSON array to include an empty string).`,
+      EXIT.usage,
+    );
+  }
+  return items.map(parseScalar);
 }
