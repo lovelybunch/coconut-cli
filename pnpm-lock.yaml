@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       coconut-sdk:
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -527,8 +527,8 @@ packages:
   check-error@1.0.3:
     resolution: {integrity: sha512-iKEoDYaRmd1mxM90a2OEfWhjsjPpYPuQ+lMYsoxB126+t8fw7ySEO48nmDg5COTjxDI65/Y2OWpeEHk3ZOe8zg==}
 
-  coconut-sdk@0.1.0:
-    resolution: {integrity: sha512-KDJt6BGe5JEcRSRWTccwdhK8HjAF+hsqRTaW32P5aQxgEZwwWx252Ji8fUIdwfRIDuspb4cFdAVeuIOYtkmxEw==}
+  coconut-sdk@0.2.0:
+    resolution: {integrity: sha512-N08Zhl4AKFCORt+y/BDtn+/7ow1emOkJsoAxPDzPAWCaVK8ikrPPpnyRWDv5hxNFy4iJrjC/B/jp6pAxpj/7rg==}
     engines: {node: '>=20'}
 
   commander@12.1.0:
@@ -1115,7 +1115,7 @@ snapshots:
     dependencies:
       get-func-name: 2.0.2
 
-  coconut-sdk@0.1.0: {}
+  coconut-sdk@0.2.0: {}
 
   commander@12.1.0: {}
 
