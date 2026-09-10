@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CliError } from "./errors.js";
-import { parseFilter, parseFilters, parseScalar } from "./filters.js";
+import { parseFilter, parseFilters, parseList, parseScalar } from "./filters.js";
 
 describe("parseFilter", () => {
   it("maps every comparison operator to its API op", () => {
@@ -52,9 +52,60 @@ describe("parseFilter", () => {
     expect(parseFilter("a!=1").op).toBe("neq");
   });
 
+  it("parses `in` / `not-in` list operators from comma lists or JSON arrays", () => {
+    expect(parseFilter("stage in sourcing,diligence")).toEqual({
+      key: "stage",
+      op: "in",
+      value: ["sourcing", "diligence"],
+    });
+    expect(parseFilter("stage not-in closed, lost")).toEqual({
+      key: "stage",
+      op: "not-in",
+      value: ["closed", "lost"],
+    });
+    // items follow the JSON-when-it-parses rule
+    expect(parseFilter("score in 1,2.5,true")).toEqual({
+      key: "score",
+      op: "in",
+      value: [1, 2.5, true],
+    });
+    expect(parseFilter('stage in ["a,b","c"]')).toEqual({
+      key: "stage",
+      op: "in",
+      value: ["a,b", "c"],
+    });
+    // one JSON scalar is a single candidate, so a quoted comma survives
+    expect(parseFilter('note in "a,b"')).toEqual({ key: "note", op: "in", value: ["a,b"] });
+    expect(parseFilter("stage in diligence")).toEqual({
+      key: "stage",
+      op: "in",
+      value: ["diligence"],
+    });
+    expect(parseFilter("stage  not-in   closed")).toEqual({
+      key: "stage",
+      op: "not-in",
+      value: ["closed"],
+    });
+  });
+
+  it("keeps the earliest-operator rule for list operators", () => {
+    expect(parseFilter("note=check in later")).toEqual({
+      key: "note",
+      op: "eq",
+      value: "check in later",
+    });
+    expect(parseFilter("k in a=b")).toEqual({ key: "k", op: "in", value: ["a=b"] });
+    expect(parseFilter("k in a:exists")).toEqual({ key: "k", op: "in", value: ["a:exists"] });
+    // a key named `in` is still just a key
+    expect(parseFilter("in=1")).toEqual({ key: "in", op: "eq", value: 1 });
+  });
+
   it("rejects unparseable expressions with a usage error", () => {
-    for (const bad of ["", "stage", "=x", ">=3", "stage="]) {
+    for (const bad of ["", "stage", "=x", ">=3", "stage=", "stage in", "stage in []"]) {
       expect(() => parseFilter(bad)).toThrowError(CliError);
+    }
+    for (const bad of ["stage in a,,b", "stage in a,", "stage not-in ,a"]) {
+      expect(() => parseFilter(bad)).toThrowError(/empty list item/i);
     }
   });
 
@@ -70,5 +121,15 @@ describe("parseScalar", () => {
   it("falls back to the raw string for non-JSON", () => {
     expect(parseScalar("hello world")).toBe("hello world");
     expect(parseScalar("[1,2]")).toEqual([1, 2]);
+  });
+});
+
+describe("parseList", () => {
+  it("prefers a JSON reading and otherwise splits on commas", () => {
+    expect(parseList("[1,2]", "k in [1,2]")).toEqual([1, 2]);
+    expect(parseList("1,2", "k in 1,2")).toEqual([1, 2]);
+    expect(parseList("null", "k in null")).toEqual([null]);
+    expect(parseList("a, b ,c", "k in a, b ,c")).toEqual(["a", "b", "c"]);
+    expect(() => parseList("[]", "k in []")).toThrowError(/empty list/i);
   });
 });
