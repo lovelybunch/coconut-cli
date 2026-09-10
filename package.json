@@ -1,6 +1,6 @@
 {
   "name": "coconut",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The Coconut Context CLI (`coco`) — pages, structured metadata, search, typed records, spaces, and space agents from your terminal.",
   "license": "Apache-2.0",
   "type": "module",
