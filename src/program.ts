@@ -19,7 +19,7 @@ import { attachGlobals } from "./commands/helpers.js";
 import { describeError, EXIT } from "./errors.js";
 import type { CliRuntime } from "./runtime.js";
 
-export const CLI_VERSION = "0.1.0";
+export const CLI_VERSION = "0.2.0";
 
 export function buildProgram(runtime: CliRuntime): Command {
   const program = new Command("coco");
