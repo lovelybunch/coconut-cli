@@ -1,32 +1,33 @@
-# dependencies
+# Dependencies
 node_modules/
-.pnpm-store/
 
-# build outputs
+# Build outputs
 dist/
-coverage/
 *.tsbuildinfo
 
-# logs
+# Test outputs
+coverage/
+.vitest/
+
+# Logs
 *.log
 npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# local environment
+# Local environment files
 .env
 .env.*
 !.env.example
 
-# cache/temp
-.cache/
+# OS/editor artifacts
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Temp files
 tmp/
 temp/
-*.pid
-
-# OS/editor
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+*.tmp

@@ -27,8 +27,8 @@ describe("foldLeadingFrontmatter", () => {
   });
 
   it("round-trips the server's rendered markdown format", () => {
-    // What the Coconut Context API’s renderMarkdown/serializeFrontmatter produce.
-    const served = '---\nstage: diligence\nscore: 0.82\ntitle: Acme\n---\n\n# Acme body\n';
+    // What renderMarkdown/serializeFrontmatter produce (see packages/api).
+    const served = "---\nstage: diligence\nscore: 0.82\ntitle: Acme\n---\n\n# Acme body\n";
     const folded = foldLeadingFrontmatter(served);
     expect(folded.title).toBe("Acme");
     expect(folded.frontmatter).toEqual({ stage: "diligence", score: 0.82 });
@@ -36,7 +36,9 @@ describe("foldLeadingFrontmatter", () => {
   });
 
   it("leaves nested YAML blocks in the body instead of mangling them", () => {
-    const doc = ["---", "metadataSchema:", "  fields:", "    - key: stage", "---", "# Body"].join("\n");
+    const doc = ["---", "metadataSchema:", "  fields:", "    - key: stage", "---", "# Body"].join(
+      "\n",
+    );
     const folded = foldLeadingFrontmatter(doc);
     expect(folded.content).toBe(doc);
     expect(folded.unfoldedBlock).toBe(true);

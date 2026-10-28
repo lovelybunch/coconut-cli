@@ -56,7 +56,10 @@ export function registerPersonalCommands(root: Command, runtime: CliRuntime): vo
       .command("put")
       .description("create or update a personal page (body from --file or stdin)")
       .argument("<path>", "path relative to the personal space")
-      .option("-f, --file <file>", "markdown body ('-' for stdin; piped stdin is read implicitly when creating)")
+      .option(
+        "-f, --file <file>",
+        "markdown body ('-' for stdin; piped stdin is read implicitly when creating)",
+      )
       .option("--title <title>", "page title"),
   ).action(async (path: string, options: { file?: string; title?: string }, command: Command) => {
     const context = contextFor(runtime, command);
@@ -67,7 +70,10 @@ export function registerPersonalCommands(root: Command, runtime: CliRuntime): vo
     // Implicit piped stdin only when the body is required (creating).
     const raw = await readContent(runtime, options.file, { implicitStdin: current === null });
     if (current === null && raw === undefined) {
-      throw new CliError(`"${path}" does not exist yet; creating it needs a body (--file or stdin).`, EXIT.usage);
+      throw new CliError(
+        `"${path}" does not exist yet; creating it needs a body (--file or stdin).`,
+        EXIT.usage,
+      );
     }
     if (current !== null && raw === undefined && options.title === undefined) {
       throw new CliError(

@@ -60,7 +60,9 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       result.items.map((task) => ({
         task: task.task,
         title: task.title,
-        schedule: task.schedule ? `${task.schedule.cron}${task.schedule.enabled ? "" : " (off)"}` : "",
+        schedule: task.schedule
+          ? `${task.schedule.cron}${task.schedule.enabled ? "" : " (off)"}`
+          : "",
         runs: task.runCount,
         "last status": task.lastRunStatus ?? "",
         "last run": formatWhen(task.lastRunAt),
@@ -83,8 +85,16 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
     context.out.details([
       ["Task", `${result.spaceSlug}/agents/${result.task} (v${result.version})`],
       ["Title", result.title],
-      ["Schedule", result.schedule ? `${result.schedule.cron} (${result.schedule.timezone}${result.schedule.enabled ? "" : ", disabled"})` : "(none)"],
-      ["Runs", `${result.runCount}${result.lastRunStatus ? `, last ${result.lastRunStatus} at ${formatWhen(result.lastRunAt)}` : ""}`],
+      [
+        "Schedule",
+        result.schedule
+          ? `${result.schedule.cron} (${result.schedule.timezone}${result.schedule.enabled ? "" : ", disabled"})`
+          : "(none)",
+      ],
+      [
+        "Runs",
+        `${result.runCount}${result.lastRunStatus ? `, last ${result.lastRunStatus} at ${formatWhen(result.lastRunAt)}` : ""}`,
+      ],
     ]);
     context.out.result("");
     context.out.result(result.markdown.replace(/\n$/, ""));
@@ -96,7 +106,10 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       .description("create or update a task (instructions from --file or stdin)")
       .argument("<space>", "space slug")
       .argument("<task>", "task path under agents/ (e.g. daily-digest)")
-      .option("-f, --file <file>", "instructions markdown ('-' for stdin; piped stdin is read implicitly when creating)")
+      .option(
+        "-f, --file <file>",
+        "instructions markdown ('-' for stdin; piped stdin is read implicitly when creating)",
+      )
       .option("--title <title>", "task title")
       .option("--schedule <cron>", "5-field cron schedule (stored in frontmatter)")
       .option("--tz <timezone>", "schedule timezone (e.g. UTC, Europe/Amsterdam)")
@@ -120,10 +133,12 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       if (options.enable && options.disable) {
         throw new CliError("--enable and --disable are mutually exclusive.", EXIT.usage);
       }
-      const current = await context.client.agents.getTask(space, taskName).catch((error: unknown) => {
-        if (error instanceof CocoNotFoundError) return null;
-        throw error;
-      });
+      const current = await context.client.agents
+        .getTask(space, taskName)
+        .catch((error: unknown) => {
+          if (error instanceof CocoNotFoundError) return null;
+          throw error;
+        });
       // Implicit piped stdin only when instructions are required (creating).
       const raw = await readContent(runtime, options.file, { implicitStdin: current === null });
       const folded = raw === undefined ? undefined : foldForWrite(context.out, raw);
@@ -152,7 +167,11 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
         return;
       }
 
-      if (folded === undefined && options.title === undefined && Object.keys(scheduleFrontmatter).length === 0) {
+      if (
+        folded === undefined &&
+        options.title === undefined &&
+        Object.keys(scheduleFrontmatter).length === 0
+      ) {
         throw new CliError(
           `Task "${taskName}" exists and nothing was given to change. Pass --file <f> (or --file - for stdin), --title, or schedule flags.`,
           EXIT.usage,
@@ -193,7 +212,9 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       if (!options.watch) {
         if (context.out.json) return context.out.emitJson(queued);
         context.out.result(`Queued run ${queued.runId} (${queued.runPath}).`);
-        context.out.info(`Follow it with: coco agent run-show ${space} ${queued.runId} — or --watch next time.`);
+        context.out.info(
+          `Follow it with: coco agent run-show ${space} ${queued.runId} — or --watch next time.`,
+        );
         return;
       }
       context.out.info(`Queued run ${queued.runId}; watching…`);
@@ -203,7 +224,10 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       });
       printRun(context, run);
       if (run.status !== "completed") {
-        throw new CliError(`Run ${run.runId} finished with status "${run.status}".`, EXIT.unexpected);
+        throw new CliError(
+          `Run ${run.runId} finished with status "${run.status}".`,
+          EXIT.unexpected,
+        );
       }
     },
   );
@@ -249,14 +273,16 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       .argument("<space>", "space slug")
       .argument("<run-id>", "run id (from `coco agent runs`)")
       .option("--transcript", "include the chronological activity transcript"),
-  ).action(async (space: string, runId: string, options: { transcript?: boolean }, command: Command) => {
-    const context = contextFor(runtime, command);
-    const run = await context.client.agents.getRun(space, runId, {
-      includeTranscript: options.transcript,
-    });
-    if (context.out.json) return context.out.emitJson(run);
-    printRun(context, run);
-  });
+  ).action(
+    async (space: string, runId: string, options: { transcript?: boolean }, command: Command) => {
+      const context = contextFor(runtime, command);
+      const run = await context.client.agents.getRun(space, runId, {
+        includeTranscript: options.transcript,
+      });
+      if (context.out.json) return context.out.emitJson(run);
+      printRun(context, run);
+    },
+  );
 
   const instructions = agent
     .command("instructions")
@@ -272,7 +298,9 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
     const result = await context.client.agents.getInstructions(space);
     if (context.out.json) return context.out.emitJson(result);
     if (!result.exists || result.markdown === null) {
-      context.out.info(`Space "${space}" has no agent instructions yet (coco agent instructions set ${space}).`);
+      context.out.info(
+        `Space "${space}" has no agent instructions yet (coco agent instructions set ${space}).`,
+      );
       return;
     }
     context.out.result(result.markdown.replace(/\n$/, ""));
@@ -283,7 +311,10 @@ export function registerAgentCommands(root: Command, runtime: CliRuntime): void 
       .command("set")
       .description("create or update the agent instructions (from --file or stdin)")
       .argument("<space>", "space slug")
-      .option("-f, --file <file>", "instructions markdown ('-' for stdin; piped stdin also read implicitly)")
+      .option(
+        "-f, --file <file>",
+        "instructions markdown ('-' for stdin; piped stdin also read implicitly)",
+      )
       .option("--title <title>", "instructions page title"),
   ).action(async (space: string, options: { file?: string; title?: string }, command: Command) => {
     const context = contextFor(runtime, command);

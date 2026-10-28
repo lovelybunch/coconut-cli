@@ -81,7 +81,9 @@ export function describeError(error: unknown): { message: string; exitCode: numb
     };
   }
   if (error instanceof CocoPermissionError) {
-    const lines = [`Permission denied (403): ${serverMessage(error) ?? "the API refused this action"}.`];
+    const lines = [
+      `Permission denied (403): ${serverMessage(error) ?? "the API refused this action"}.`,
+    ];
     if (error.reasonCode) lines.push(`Reason: ${error.reasonCode}`);
     for (const step of error.nextSteps ?? []) lines.push(`  → ${step}`);
     return { message: lines.join("\n"), exitCode: EXIT.permission };

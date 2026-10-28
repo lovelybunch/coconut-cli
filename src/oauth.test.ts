@@ -75,9 +75,7 @@ describe("discovery", () => {
   });
 
   it("rejects an issuer that does not match the base URL (mix-up protection)", async () => {
-    const { fetch } = mockFetch([
-      { body: { ...validMetadata(), issuer: "https://evil.example" } },
-    ]);
+    const { fetch } = mockFetch([{ body: { ...validMetadata(), issuer: "https://evil.example" } }]);
     await expect(discoverAuthServer(fetch, "https://coco.test")).rejects.toThrowError(
       /issuer.*does not match/,
     );
@@ -117,9 +115,19 @@ describe("discovery", () => {
 describe("registration", () => {
   it("registers a loopback redirect and returns the client pair", async () => {
     const { fetch, requests } = mockFetch([
-      { body: { client_id: "mcp_abc", client_secret: "s3cret", redirect_uris: ["http://127.0.0.1:1234/callback"] } },
+      {
+        body: {
+          client_id: "mcp_abc",
+          client_secret: "s3cret",
+          redirect_uris: ["http://127.0.0.1:1234/callback"],
+        },
+      },
     ]);
-    const client = await registerClient(fetch, "https://coco.test/oauth/register", "http://127.0.0.1:1234/callback");
+    const client = await registerClient(
+      fetch,
+      "https://coco.test/oauth/register",
+      "http://127.0.0.1:1234/callback",
+    );
     expect(client).toEqual({
       clientId: "mcp_abc",
       clientSecret: "s3cret",
@@ -132,7 +140,10 @@ describe("registration", () => {
 
   it("surfaces the server's error_description", async () => {
     const { fetch } = mockFetch([
-      { status: 400, body: { error: "invalid_client_metadata", error_description: "bad redirect" } },
+      {
+        status: 400,
+        body: { error: "invalid_client_metadata", error_description: "bad redirect" },
+      },
     ]);
     await expect(
       registerClient(fetch, "https://coco.test/oauth/register", "javascript:alert(1)"),
@@ -198,7 +209,10 @@ describe("token endpoint", () => {
 
   it("maps invalid_grant to an auth error with the description", async () => {
     const { fetch } = mockFetch([
-      { status: 400, body: { error: "invalid_grant", error_description: "refresh token expired." } },
+      {
+        status: 400,
+        body: { error: "invalid_grant", error_description: "refresh token expired." },
+      },
     ]);
     await expect(
       refreshAccessToken(fetch, {
@@ -282,7 +296,9 @@ describe("loopback server", () => {
         () => "resolved",
         (error: Error) => error,
       );
-      await fetch(`${server.redirectUri}?error=access_denied&error_description=no%20org%20membership`);
+      await fetch(
+        `${server.redirectUri}?error=access_denied&error_description=no%20org%20membership`,
+      );
       expect(await outcome).toMatchObject({
         message: expect.stringMatching(/no org membership/),
       });

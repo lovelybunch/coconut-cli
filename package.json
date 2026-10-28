@@ -1,7 +1,7 @@
 {
   "name": "coconut",
   "version": "0.2.0",
-  "description": "The Coconut Context CLI (`coco`) — pages, structured metadata, search, typed records, spaces, and space agents from your terminal.",
+  "description": "The Coconut Context CLI (`coco`) — pages, structured metadata, search, typed records, spaces, space agents, and your inbox from your terminal.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -17,7 +17,7 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@10.34.5",
+  "packageManager": "pnpm@9.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lovelybunch/coconut-cli.git"
@@ -40,17 +40,18 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "tsc --noEmit -p tsconfig.lint.json",
-    "dev": "node --import tsx src/index.ts",
+    "cli": "node --import tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.lint.json",
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "coconut-sdk": "^0.2.0",
-    "commander": "^12.1.0"
+    "coconut-sdk": "0.2.0",
+    "commander": "12.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
-    "tsx": "^4.16.0",
-    "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "@types/node": "20.19.43",
+    "tsx": "4.22.4",
+    "typescript": "5.9.3",
+    "vitest": "1.6.1"
   }
 }

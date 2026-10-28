@@ -106,7 +106,12 @@ export function registerRecordsCommands(root: Command, runtime: CliRuntime): voi
       .argument("<path>", "page path relative to the space (e.g. deals/acme)")
       .option("--title <title>", "record title")
       .option("-f, --file <file>", "markdown body ('-' for stdin; default: the template's content)")
-      .option("--metadata <k=v>", "field values (repeatable; validated against the schema)", collect, [])
+      .option(
+        "--metadata <k=v>",
+        "field values (repeatable; validated against the schema)",
+        collect,
+        [],
+      )
       .option("--note <note>", "revision note"),
   ).action(
     async (
@@ -122,7 +127,8 @@ export function registerRecordsCommands(root: Command, runtime: CliRuntime): voi
         path,
         title: options.title,
         content,
-        metadata: options.metadata.length > 0 ? parseKeyValues(options.metadata, "--metadata") : undefined,
+        metadata:
+          options.metadata.length > 0 ? parseKeyValues(options.metadata, "--metadata") : undefined,
         note: options.note,
       });
       if (context.out.json) return context.out.emitJson(result);

@@ -2,7 +2,7 @@
 
 `coco` — command-line client for the **Coconut Context** HTTP API:
 pages, structured metadata, search and metadata queries, typed records,
-templates, spaces (export/import), and space agents.
+templates, spaces (export/import), space agents, and your inbox.
 
 - Built on [`coconut-sdk`](https://github.com/lovelybunch/coconut-sdk) —
   every API call goes through the typed client; the CLI adds auth flows,
@@ -10,8 +10,8 @@ templates, spaces (export/import), and space agents.
 - Node ≥ 20, one runtime dependency beyond the SDK (`commander`).
 - The REST contract in
   [`openapi.yaml`](https://github.com/lovelybunch/coconut-sdk/blob/main/openapi.yaml)
-  (vendored in the SDK repo) is the source of truth for everything the CLI
-  does.
+  (vendored in the SDK repository) is the source of truth for everything the
+  CLI does.
 
 ## Install
 
@@ -61,6 +61,8 @@ echo "$COCO_KEY" | coco auth login --key # stdin, for scripts
 
 Keys look like `coco_...`; the local dev stack seeds
 `dev-agent-key-change-me`. The secret is never accepted as an argv argument.
+An agent key selects its own org on multi-tenant deployments, so `--org-slug`
+is only needed with the deployment's control-plane key.
 
 ### Endpoint trust rules
 
@@ -135,6 +137,8 @@ coco agent    list · tasks <space> · task get|put <space> <task> · run <space
               runs <space> <task> · run-show <space> <run-id> [--transcript]
               instructions get|set <space> · models
 coco personal list | get | put | delete <path>
+coco inbox    [--unread] [--space S] [--limit N] [--before CURSOR] · count [--space S]
+              read <id…> | --all [--space S] [--scope all|activity]
 coco whoami · coco health
 ```
 
@@ -152,6 +156,15 @@ conflict message (exit 6) instead of a silent overwrite. A leading `---`
 block of flat `key: value` lines in content you provide is folded into
 title/frontmatter client-side (the REST API stores content verbatim); for
 nested structures use `--frontmatter` with one-line JSON.
+
+`coco inbox` is for humans: it lists what needs your attention (page activity
+in spaces you edit, your agents' run outcomes, membership events) and marks
+items read. Rows that need you rather than merely inform you (a failed run,
+a record waiting on a person) show `!` instead of `•`, and `count` says how
+many. `--space` narrows the listing, the count and `read --all` to one
+space; `read --all --scope activity` clears what a space's activity view
+showed while leaving the rows that need you unread. Agent keys have no inbox
+and get a clear "human credential required" message (exit 7).
 
 ## A worked session
 
@@ -201,11 +214,17 @@ pnpm test    # vitest (mock-fetch unit tests)
 pnpm lint    # typecheck incl. tests
 ```
 
-To develop against a local checkout of the SDK, `pnpm link ../coconut-sdk`
-(then `pnpm install` again to go back to the registry version).
+This package is developed in the Coconut monorepo (`packages/cli`, where the
+same scripts run as `pnpm --filter coconut <script>`, `lint` is ESLint, and
+the SDK is a workspace link) and exported to
+[lovelybunch/coconut-cli](https://github.com/lovelybunch/coconut-cli) at every
+release. That repository is a read-only mirror: issues and pull requests are
+welcome there, and a maintainer ports merged changes upstream with credit. See
+its `CONTRIBUTING.md`. To develop the mirror against a local checkout of the
+SDK, `pnpm link ../coconut-sdk` (then `pnpm install` again to go back to the
+registry version).
 
-Smoke-test against any Coconut Context deployment (or a local dev stack of
-the product):
+Smoke-test against any Coconut Context deployment (or a local dev stack):
 
 ```bash
 echo "$COCO_KEY" | coco auth login --key --base-url https://api.example.com
@@ -216,10 +235,11 @@ Shell completion is not bundled (commander does not generate it); PRs welcome.
 
 ## Releasing
 
-Bump `version` in `package.json` (and the `coconut-sdk` range if the release
-needs a newer SDK), commit, tag `vX.Y.Z` (matching), push the tag —
-[`release.yml`](.github/workflows/release.yml) builds, tests, and publishes to
-npm via [trusted publishing](https://docs.npmjs.com/trusted-publishers)
+Releases are cut from the monorepo, together with the SDK under one version.
+The sync pushes the release tag `vX.Y.Z` to the mirror, whose
+[`release.yml`](https://github.com/lovelybunch/coconut-cli/blob/main/.github/workflows/release.yml)
+waits for the matching `coconut-sdk` version to reach npm, then builds, tests,
+and publishes via [trusted publishing](https://docs.npmjs.com/trusted-publishers)
 (OIDC: tokenless, with automatic provenance attestations).
 
 ## License

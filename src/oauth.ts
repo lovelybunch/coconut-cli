@@ -123,13 +123,20 @@ export async function discoverAuthServer(
   const metadata = (await response.json()) as Partial<AuthServerMetadata>;
   // RFC 8414 §3.3: the issuer must be the value the well-known URI was
   // derived from — anything else is a misconfiguration or a mix-up attempt.
-  if (typeof metadata.issuer !== "string" || metadata.issuer.replace(/\/+$/, "") !== normalizedBase) {
+  if (
+    typeof metadata.issuer !== "string" ||
+    metadata.issuer.replace(/\/+$/, "") !== normalizedBase
+  ) {
     throw new CliError(
       `OAuth discovery document at ${url} declares issuer "${metadata.issuer ?? "(none)"}", which does not match ${normalizedBase}. Re-run with --base-url set to the deployment's canonical URL.`,
       EXIT.auth,
     );
   }
-  for (const field of ["authorization_endpoint", "token_endpoint", "registration_endpoint"] as const) {
+  for (const field of [
+    "authorization_endpoint",
+    "token_endpoint",
+    "registration_endpoint",
+  ] as const) {
     if (typeof metadata[field] !== "string") {
       throw new CliError(`OAuth discovery document at ${url} is missing ${field}.`, EXIT.auth);
     }
@@ -157,9 +164,15 @@ export async function registerClient(
     redirect: "error",
   });
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!response.ok || typeof body.client_id !== "string" || typeof body.client_secret !== "string") {
+  if (
+    !response.ok ||
+    typeof body.client_id !== "string" ||
+    typeof body.client_secret !== "string"
+  ) {
     const description =
-      typeof body.error_description === "string" ? body.error_description : `HTTP ${response.status}`;
+      typeof body.error_description === "string"
+        ? body.error_description
+        : `HTTP ${response.status}`;
     throw new CliError(`OAuth client registration failed: ${description}`, EXIT.auth);
   }
   return { clientId: body.client_id, clientSecret: body.client_secret, redirectUri };
@@ -277,7 +290,20 @@ const CALLBACK_PAGE = `<!doctype html><meta charset="utf-8"><title>coco</title>
 <h1 style="font-size:1.2rem">%HEADING%</h1><p>%DETAIL%</p><p>You can close this tab.</p></body>`;
 
 function renderCallbackPage(heading: string, detail: string): string {
-  return CALLBACK_PAGE.replace("%HEADING%", heading).replace("%DETAIL%", detail);
+  // The detail can echo the provider's error_description; escape it, and use
+  // replacer functions so `$&`-style patterns in it are not interpreted.
+  return CALLBACK_PAGE.replace("%HEADING%", () => escapeHtml(heading)).replace("%DETAIL%", () =>
+    escapeHtml(detail),
+  );
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 export interface LoopbackServer {

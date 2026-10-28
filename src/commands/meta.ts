@@ -51,7 +51,12 @@ export function registerMetaCommands(root: Command, runtime: CliRuntime): void {
       .argument("<path>", "page path (<space>/<path>)")
       .option("--set <k=v>", "upsert a key (JSON values parsed; null deletes)", collect, [])
       .option("--append <k=v>", "append a value to an array key", collect, [])
-      .option("--append-unique <k=v>", "append only if not already present (idempotent)", collect, []),
+      .option(
+        "--append-unique <k=v>",
+        "append only if not already present (idempotent)",
+        collect,
+        [],
+      ),
   ).action(
     async (
       path: string,

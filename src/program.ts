@@ -6,6 +6,7 @@
 import { Command, CommanderError } from "commander";
 import { registerAgentCommands } from "./commands/agent.js";
 import { registerAuthCommands } from "./commands/auth.js";
+import { registerInboxCommands } from "./commands/inbox.js";
 import { registerMetaCommands } from "./commands/meta.js";
 import { registerMiscCommands } from "./commands/misc.js";
 import { registerPageCommands } from "./commands/page.js";
@@ -51,7 +52,7 @@ export function buildProgram(runtime: CliRuntime): Command {
         "  8 rate limited · 9 server error · 1 anything else",
         "",
         "Worked example:",
-        "  echo \"$COCO_KEY\" | coco auth login --key --base-url https://api.example.com",
+        '  echo "$COCO_KEY" | coco auth login --key --base-url https://api.example.com',
         "  coco spaces list --stats",
         "  coco page put deals/acme --template deal-memo --metadata stage=sourcing",
         "  coco query --filter stage=diligence --filter 'conviction-score>=0.7' --space deals",
@@ -69,6 +70,7 @@ export function buildProgram(runtime: CliRuntime): Command {
   registerTemplateCommands(program, runtime);
   registerAgentCommands(program, runtime);
   registerPersonalCommands(program, runtime);
+  registerInboxCommands(program, runtime);
   registerMiscCommands(program, runtime);
 
   return program;

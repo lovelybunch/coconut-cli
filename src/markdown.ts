@@ -1,6 +1,6 @@
 // Client-side fold of a leading `---` frontmatter block into
 // title/frontmatter/content. The REST surface stores `content` verbatim
-// (only the product’s MCP door folds), so the CLI
+// (only the MCP door folds, see packages/mcp/src/markdown.ts), so the CLI
 // folds before writing — the same flat rules as the MCP door: `key: value`
 // lines, values as one-line JSON when they parse as JSON. One deliberate
 // difference: a block that is NOT strictly flat (nested YAML, list items) is

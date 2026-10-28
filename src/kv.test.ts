@@ -5,7 +5,10 @@ import { parseKeyValues } from "./kv.js";
 describe("parseKeyValues", () => {
   it("parses repeated pairs with JSON value coercion", () => {
     expect(
-      parseKeyValues(["stage=diligence", "conviction-score=0.7", "live=true", "flags=null"], "--set"),
+      parseKeyValues(
+        ["stage=diligence", "conviction-score=0.7", "live=true", "flags=null"],
+        "--set",
+      ),
     ).toEqual({
       stage: "diligence",
       "conviction-score": 0.7,
