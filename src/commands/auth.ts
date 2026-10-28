@@ -41,7 +41,12 @@ export function registerAuthCommands(root: Command, runtime: CliRuntime): void {
       .option("--key", "store an agent key (prompted, or piped on stdin) instead of OAuth")
       .option("--read-only", "OAuth only: request just context:read")
       .option("--no-browser", "OAuth only: print the sign-in URL instead of opening a browser")
-      .option("--timeout <seconds>", "OAuth only: how long to wait for the browser", integer("--timeout"), 300)
+      .option(
+        "--timeout <seconds>",
+        "OAuth only: how long to wait for the browser",
+        integer("--timeout"),
+        300,
+      )
       .addHelpText(
         "after",
         [
@@ -51,7 +56,7 @@ export function registerAuthCommands(root: Command, runtime: CliRuntime): void {
           "--key with an agent key minted by an org admin:",
           "",
           "  coco auth login --key                   # prompts, echo off",
-          "  echo \"$KEY\" | coco auth login --key     # stdin, for scripts",
+          '  echo "$KEY" | coco auth login --key     # stdin, for scripts',
           "  coco auth login --base-url https://api.example.com --profile prod",
         ].join("\n"),
       ),
@@ -60,7 +65,9 @@ export function registerAuthCommands(root: Command, runtime: CliRuntime): void {
   });
 
   attachGlobals(
-    auth.command("logout").description("remove the stored credential (keeps the profile's base URL)"),
+    auth
+      .command("logout")
+      .description("remove the stored credential (keeps the profile's base URL)"),
   ).action(async (_options, command: Command) => {
     const globals = globalsOf(command);
     const out = createOutput(runtime, globals);
@@ -130,7 +137,8 @@ export function registerAuthCommands(root: Command, runtime: CliRuntime): void {
       ["Principal", `${session.principal.kind} ${session.principal.id}`],
       ["API scopes", session.principal.scopes.join(", ")],
     ];
-    if (session.identity) rows.push(["Identity", `${session.identity.name} <${session.identity.email}>`]);
+    if (session.identity)
+      rows.push(["Identity", `${session.identity.name} <${session.identity.email}>`]);
     if (context.credential.kind === "oauth") {
       if (context.credential.scope) rows.push(["OAuth scope", context.credential.scope]);
       if (context.credential.expiresAt) {
@@ -139,7 +147,7 @@ export function registerAuthCommands(root: Command, runtime: CliRuntime): void {
           "Token expiry",
           remaining > 0
             ? `in ${remaining}s${context.credential.hasRefreshToken ? " (auto-refreshes)" : ""}`
-            : `expired${context.credential.hasRefreshToken ? " (auto-refreshes on next call)" : " — run \`coco auth login\`"}`,
+            : `expired${context.credential.hasRefreshToken ? " (auto-refreshes on next call)" : " — run `coco auth login`"}`,
         ]);
       }
     }
@@ -177,7 +185,10 @@ async function login(runtime: CliRuntime, command: Command): Promise<void> {
   } else {
     profile.auth = await oauthLogin(runtime, out, {
       baseUrl,
-      cached: existing?.auth?.type === "oauth" && existing.baseUrl === baseUrl ? existing.auth : undefined,
+      cached:
+        existing?.auth?.type === "oauth" && existing.baseUrl === baseUrl
+          ? existing.auth
+          : undefined,
       scope: options.readOnly ? READ_ONLY_SCOPE : READ_WRITE_SCOPE,
       openBrowser: options.browser,
       timeoutMs: options.timeout * 1000,
@@ -242,7 +253,11 @@ async function oauthLogin(
     server = await startLoopbackServer(0);
   }
   try {
-    client ??= await registerClient(runtime.fetch, metadata.registration_endpoint, server.redirectUri);
+    client ??= await registerClient(
+      runtime.fetch,
+      metadata.registration_endpoint,
+      server.redirectUri,
+    );
 
     const pkce = createPkcePair();
     const state = createState();

@@ -16,8 +16,16 @@ describe("parseFilter", () => {
       op: "gt",
       value: 0.5,
     });
-    expect(parseFilter("ebitda-multiple<=8")).toEqual({ key: "ebitda-multiple", op: "lte", value: 8 });
-    expect(parseFilter("ebitda-multiple<10")).toEqual({ key: "ebitda-multiple", op: "lt", value: 10 });
+    expect(parseFilter("ebitda-multiple<=8")).toEqual({
+      key: "ebitda-multiple",
+      op: "lte",
+      value: 8,
+    });
+    expect(parseFilter("ebitda-multiple<10")).toEqual({
+      key: "ebitda-multiple",
+      op: "lt",
+      value: 10,
+    });
     expect(parseFilter("sources~news.example")).toEqual({
       key: "sources",
       op: "contains",

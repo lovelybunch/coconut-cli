@@ -96,10 +96,7 @@ export function saveConfig(env: Record<string, string | undefined>, config: CliC
 }
 
 /** The profile name a command targets: --profile > activeProfile > "default". */
-export function resolveProfileName(
-  config: CliConfig,
-  explicit: string | undefined,
-): string {
+export function resolveProfileName(config: CliConfig, explicit: string | undefined): string {
   return explicit ?? config.activeProfile ?? "default";
 }
 

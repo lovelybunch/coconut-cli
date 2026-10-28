@@ -99,7 +99,12 @@ export function createContext(runtime: CliRuntime, options: GlobalOptions): Comm
     client = new CocoClient({ baseUrl, apiKey: envKey, orgSlug, fetch: runtime.fetch });
   } else if (profile?.auth?.type === "key") {
     credential = { kind: "key", display: redactSecret(profile.auth.apiKey), source: "profile" };
-    client = new CocoClient({ baseUrl, apiKey: profile.auth.apiKey, orgSlug, fetch: runtime.fetch });
+    client = new CocoClient({
+      baseUrl,
+      apiKey: profile.auth.apiKey,
+      orgSlug,
+      fetch: runtime.fetch,
+    });
   } else if (profile?.auth?.type === "oauth") {
     const auth = profile.auth;
     credential = {

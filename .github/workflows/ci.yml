@@ -1,0 +1,56 @@
+# CI for the coconut (coco CLI) mirror. The package is developed in the
+# Coconut monorepo and exported here at each release; this runs the exported
+# tree's own build, tests and typecheck on the Node versions the package
+# supports, so contributors and the release workflow get the same signal.
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build & test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # The CLI depends on the coconut-sdk version released alongside it. The
+      # SDK mirror publishes first; this waits for that version to be on the
+      # registry instead of failing the install on a race.
+      - name: Wait for coconut-sdk on npm
+        run: node scripts/wait-for-sdk.mjs
+
+      # The lockfile is written by the sync from the monorepo's reviewed
+      # resolution, so nothing floats here; no dependency needs an install script.
+      - name: Install
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck (src + tests)
+        run: pnpm lint
+
+      - name: Smoke
+        run: node dist/index.js --version

@@ -35,10 +35,16 @@ export function editInEditor(
       shell: true,
     });
     if (result.error) {
-      throw new CliError(`Could not launch editor "${editor}": ${result.error.message}`, EXIT.usage);
+      throw new CliError(
+        `Could not launch editor "${editor}": ${result.error.message}`,
+        EXIT.usage,
+      );
     }
     if (result.status !== 0) {
-      throw new CliError(`Editor exited with status ${result.status}; aborting the edit.`, EXIT.unexpected);
+      throw new CliError(
+        `Editor exited with status ${result.status}; aborting the edit.`,
+        EXIT.unexpected,
+      );
     }
     const content = readFileSync(file, "utf8");
     return { content, changed: content !== initialContent };

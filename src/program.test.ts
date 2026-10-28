@@ -148,7 +148,9 @@ describe("read commands → SDK calls", () => {
   });
 
   it("--json prints exactly the API payload on stdout", async () => {
-    const payload = { items: [{ slug: "deals", name: "Deals", description: "", visibility: null }] };
+    const payload = {
+      items: [{ slug: "deals", name: "Deals", description: "", visibility: null }],
+    };
     const harness = makeHarness([{ body: payload }]);
     const code = await harness.run(["spaces", "list", "--json"]);
     expect(code).toBe(0);
@@ -227,7 +229,14 @@ describe("page put create-vs-update", () => {
   });
 
   it("maps a 412 on the write to exit code 6 with a conflict explanation", async () => {
-    const page = { path: "deals/acme", title: "A", version: 3, updatedAt: "", frontmatter: {}, content: "x" };
+    const page = {
+      path: "deals/acme",
+      title: "A",
+      version: 3,
+      updatedAt: "",
+      frontmatter: {},
+      content: "x",
+    };
     const harness = makeHarness([
       { body: page },
       { status: 412, body: { error: "Version conflict" } },
@@ -341,7 +350,10 @@ describe("error → exit code mapping", () => {
             ? { error: "invalid_grant", error_description: "refresh token expired." }
             : { error: "Unauthorized" },
         ),
-        { status: url.endsWith("/oauth/token") ? 400 : 401, headers: { "content-type": "application/json" } },
+        {
+          status: url.endsWith("/oauth/token") ? 400 : 401,
+          headers: { "content-type": "application/json" },
+        },
       );
     expect(await harness.run(["whoami"])).toBe(4);
     expect(harness.stderr()).toContain("coco auth login");
@@ -362,10 +374,20 @@ describe("profiles", () => {
     const harness = makeHarness(
       [
         // login: verification session probe
-        { body: { principal: { id: "agent-1", kind: "agent", scopes: ["read", "write"] }, identity: null } },
+        {
+          body: {
+            principal: { id: "agent-1", kind: "agent", scopes: ["read", "write"] },
+            identity: null,
+          },
+        },
         // status: health + session
         { body: { ok: true } },
-        { body: { principal: { id: "agent-1", kind: "agent", scopes: ["read", "write"] }, identity: null } },
+        {
+          body: {
+            principal: { id: "agent-1", kind: "agent", scopes: ["read", "write"] },
+            identity: null,
+          },
+        },
       ],
       { COCO_API_KEY: "" },
     );
@@ -376,7 +398,10 @@ describe("profiles", () => {
     expect(await harness.run(["auth", "login", "--key", "--base-url", "http://coco.test"])).toBe(0);
 
     const stored = JSON.parse(readFileSync(join(dir, "coco", "config.json"), "utf8"));
-    expect(stored.profiles.default.auth).toEqual({ type: "key", apiKey: "dev-agent-key-change-me" });
+    expect(stored.profiles.default.auth).toEqual({
+      type: "key",
+      apiKey: "dev-agent-key-change-me",
+    });
     expect(stored.activeProfile).toBe("default");
 
     expect(await harness.run(["auth", "status"])).toBe(0);

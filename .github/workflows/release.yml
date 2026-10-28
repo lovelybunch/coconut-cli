@@ -1,0 +1,136 @@
+# Publish coconut (the coco CLI) to npm when the sync from the Coconut monorepo
+# pushes a vX.Y.Z tag here. Two jobs on purpose:
+#   - build: no OIDC token. Checks the tag, waits for the coconut-sdk release
+#     of the same version to reach the registry, installs from the committed
+#     lockfile with lifecycle scripts disabled, builds with the pinned
+#     compiler, then seals and verifies the tarball BEFORE tests or anything
+#     else from the dependency tree runs: the tree must still be exactly the
+#     synced commit and the tarball may hold only the manifest, README,
+#     license files and dist/. Tests, typecheck and a smoke of the binary
+#     follow; if they fail the job fails and nothing publishes.
+#   - publish: OIDC token, no checkout, no install. Downloads that tarball and
+#     publishes it via npm trusted publishing, configured on npmjs.com for this
+#     repository, this workflow file and the `npm-publish` environment.
+#     Provenance is attested automatically. There is no NPM_TOKEN anywhere.
+# Nothing floats: every dependency, coconut-sdk included, is pinned to the
+# exact version the monorepo released beside it, and the lockfile carries the
+# whole tree with integrity hashes.
+#
+# Only the sync creates release tags here; the build job refuses a tag whose
+# commit is not a sync commit. That guards against mistakes, not against a
+# hostile collaborator: write access to this repository is the real boundary.
+# Keep it to the deploy key, protect v* tags with a ruleset, and put required
+# reviewers on the npm-publish environment for a human approval per release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Tag matches package.json
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [ "v$version" != "$TAG" ]; then
+            echo "package.json is $version but the tag is $TAG" >&2
+            exit 1
+          fi
+
+      - name: Tagged commit is a sync from the monorepo
+        run: |
+          if ! git log -1 --format=%B | grep -Eq '^Coconut-Source: [0-9a-f]{7,40}$'; then
+            echo "This tag is not on a sync commit from the Coconut monorepo; releases are cut there." >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # The SDK release of the same version runs in its own repository; wait
+      # for it to reach the registry so the frozen install below resolves it.
+      - name: Wait for coconut-sdk on npm
+        run: node scripts/wait-for-sdk.mjs
+
+      - name: Install (frozen lockfile, no lifecycle scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build
+        run: pnpm build
+
+      # Sealed before anything but the pinned compiler has executed.
+      - name: Pack and verify the tarball
+        run: node scripts/verify-pack.mjs "$RUNNER_TEMP/pack"
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: ${{ runner.temp }}/pack/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm lint
+
+      - name: Smoke
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          reported="$(node dist/index.js --version)"
+          if [ "v$reported" != "$TAG" ]; then
+            echo "coco --version reports $reported but the tag is $TAG" >&2
+            exit 1
+          fi
+
+  publish:
+    name: Publish ${{ github.ref_name }} to npm
+    needs: build
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Download tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: pack
+
+      # Trusted publishing needs npm 11.5.1 or newer. Pinned, never "latest".
+      - name: Pin npm
+        run: npm install -g npm@12.1.0 && npm --version
+
+      # The path must start with ./ : to npm a bare "pack/name.tgz" is the
+      # GitHub shorthand owner/repo, not a file, and the publish is refused.
+      - name: Publish
+        run: |
+          set -euo pipefail
+          tarball="$(ls pack/*.tgz)"
+          npm publish "./$tarball" --provenance --access public

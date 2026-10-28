@@ -70,7 +70,9 @@ export function registerSpacesCommands(root: Command, runtime: CliRuntime): void
     const bundle = await context.client.spaces.export(space);
     if (options.output) {
       writeFileSync(options.output, `${JSON.stringify(bundle, null, 2)}\n`);
-      context.out.info(`Exported ${bundle.pages.length} pages from "${space}" to ${options.output}.`);
+      context.out.info(
+        `Exported ${bundle.pages.length} pages from "${space}" to ${options.output}.`,
+      );
     } else {
       context.out.emitJson(bundle);
     }
@@ -83,34 +85,41 @@ export function registerSpacesCommands(root: Command, runtime: CliRuntime): void
       .argument("<space>", "target space slug")
       .argument("<bundle>", "bundle file (from `coco spaces export`)")
       .option("--overwrite", "write new revisions over existing pages (default: skip them)"),
-  ).action(async (space: string, bundlePath: string, options: { overwrite?: boolean }, command: Command) => {
-    const context = contextFor(runtime, command);
-    let bundle: SpaceExportBundle;
-    try {
-      bundle = JSON.parse(readFileSync(bundlePath, "utf8")) as SpaceExportBundle;
-    } catch (error) {
-      throw new CliError(`Could not read ${bundlePath}: ${(error as Error).message}`, EXIT.usage);
-    }
-    if (bundle?.format !== "coco-space-export") {
-      throw new CliError(
-        `${bundlePath} is not a coco-space-export bundle (want the output of \`coco spaces export\`).`,
-        EXIT.usage,
+  ).action(
+    async (
+      space: string,
+      bundlePath: string,
+      options: { overwrite?: boolean },
+      command: Command,
+    ) => {
+      const context = contextFor(runtime, command);
+      let bundle: SpaceExportBundle;
+      try {
+        bundle = JSON.parse(readFileSync(bundlePath, "utf8")) as SpaceExportBundle;
+      } catch (error) {
+        throw new CliError(`Could not read ${bundlePath}: ${(error as Error).message}`, EXIT.usage);
+      }
+      if (bundle?.format !== "coco-space-export") {
+        throw new CliError(
+          `${bundlePath} is not a coco-space-export bundle (want the output of \`coco spaces export\`).`,
+          EXIT.usage,
+        );
+      }
+      const result = await context.client.spaces.import(space, bundle, {
+        mode: options.overwrite ? "overwrite" : "skip",
+      });
+      if (context.out.json) return context.out.emitJson(result);
+      context.out.result(
+        `Imported into "${result.space}" (${result.mode}): ${result.created} created, ${result.updated} updated, ${result.skipped} skipped.`,
       );
-    }
-    const result = await context.client.spaces.import(space, bundle, {
-      mode: options.overwrite ? "overwrite" : "skip",
-    });
-    if (context.out.json) return context.out.emitJson(result);
-    context.out.result(
-      `Imported into "${result.space}" (${result.mode}): ${result.created} created, ${result.updated} updated, ${result.skipped} skipped.`,
-    );
-    for (const failure of result.errors) {
-      context.out.warn(`  failed ${failure.path}: ${failure.error}`);
-    }
-    if (result.errors.length > 0) {
-      throw new CliError(`${result.errors.length} pages failed to import.`, EXIT.unexpected);
-    }
-  });
+      for (const failure of result.errors) {
+        context.out.warn(`  failed ${failure.path}: ${failure.error}`);
+      }
+      if (result.errors.length > 0) {
+        throw new CliError(`${result.errors.length} pages failed to import.`, EXIT.unexpected);
+      }
+    },
+  );
 
   attachGlobals(
     spaces

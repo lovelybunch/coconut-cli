@@ -59,7 +59,9 @@ describe("load/save round-trip", () => {
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(loadConfig(env())).toEqual(config);
     // The stored file is plain readable JSON (documented shape).
-    expect(JSON.parse(readFileSync(path, "utf8")).profiles.dev.baseUrl).toBe("http://localhost:8787");
+    expect(JSON.parse(readFileSync(path, "utf8")).profiles.dev.baseUrl).toBe(
+      "http://localhost:8787",
+    );
   });
 
   it("re-pins mode 0600 when overwriting", () => {

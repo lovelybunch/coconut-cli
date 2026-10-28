@@ -11,7 +11,10 @@ const SOURCES: SpaceTemplateSource[] = ["builtin", "remote", "org"];
 
 function parseSource(value: string): SpaceTemplateSource {
   if ((SOURCES as string[]).includes(value)) return value as SpaceTemplateSource;
-  throw new CliError(`Unknown template source "${value}" (want ${SOURCES.join(", ")}).`, EXIT.usage);
+  throw new CliError(
+    `Unknown template source "${value}" (want ${SOURCES.join(", ")}).`,
+    EXIT.usage,
+  );
 }
 
 export function registerTemplateCommands(root: Command, runtime: CliRuntime): void {

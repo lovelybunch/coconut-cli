@@ -13,14 +13,7 @@ import { foldLeadingFrontmatter } from "../markdown.js";
 import { formatWhen } from "../output.js";
 import type { Output } from "../output.js";
 import type { CliRuntime } from "../runtime.js";
-import {
-  attachGlobals,
-  collect,
-  contextFor,
-  ellipsize,
-  integer,
-  readContent,
-} from "./helpers.js";
+import { attachGlobals, collect, contextFor, ellipsize, integer, readContent } from "./helpers.js";
 
 /**
  * The REST surface stores `content` verbatim (no server-side fold), so the
@@ -92,9 +85,15 @@ export function registerPageCommands(root: Command, runtime: CliRuntime): void {
       .command("put")
       .description("create or update a page (body from --file or stdin)")
       .argument("<path>", "page path (<space>/<path>)")
-      .option("-f, --file <file>", "markdown body file ('-' for stdin; piped stdin is read implicitly when creating)")
+      .option(
+        "-f, --file <file>",
+        "markdown body file ('-' for stdin; piped stdin is read implicitly when creating)",
+      )
       .option("--title <title>", "page title")
-      .option("--template <name>", "create-only: template to seed from (name or <space>/templates/<name>)")
+      .option(
+        "--template <name>",
+        "create-only: template to seed from (name or <space>/templates/<name>)",
+      )
       .option(
         "--metadata <k=v>",
         "metadata to set (repeatable; JSON values parsed, e.g. score=0.7)",
@@ -166,7 +165,12 @@ export function registerPageCommands(root: Command, runtime: CliRuntime): void {
           EXIT.usage,
         );
       }
-      if (folded === undefined && title === undefined && frontmatter === undefined && metadata === undefined) {
+      if (
+        folded === undefined &&
+        title === undefined &&
+        frontmatter === undefined &&
+        metadata === undefined
+      ) {
         throw new CliError(
           `"${path}" exists and nothing was given to change. Pass --file <f> (or --file - for stdin), --title, --frontmatter, or --metadata.`,
           EXIT.usage,

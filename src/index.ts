@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// coco — command-line client for the Coco (Coconut Context) HTTP API.
-// The documented contract lives in openapi.yaml at the repository root; all API
+// coco — command-line client for the Coconut Context HTTP API.
+// The documented contract is openapi.yaml (packages/app/public/openapi.yaml in
+// the monorepo, vendored in the published coconut-sdk repository); all API
 // calls go through coconut-sdk.
 
 import { runCli } from "./program.js";

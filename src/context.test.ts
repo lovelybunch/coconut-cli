@@ -25,7 +25,10 @@ afterEach(() => {
 
 type Route = (url: string, init?: RequestInit) => Response | undefined;
 
-function makeRuntime(routes: Route[], envExtra: Record<string, string> = {}): {
+function makeRuntime(
+  routes: Route[],
+  envExtra: Record<string, string> = {},
+): {
   runtime: CliRuntime;
   requests: Array<{ url: string; init?: RequestInit }>;
 } {
@@ -83,7 +86,9 @@ const bearerOf = (init?: RequestInit) =>
 
 describe("createOauthFetch", () => {
   it("sends the stored access token while it is fresh", async () => {
-    const { runtime, requests } = makeRuntime([(url) => (url.includes("/pages") ? json({ items: [] }) : undefined)]);
+    const { runtime, requests } = makeRuntime([
+      (url) => (url.includes("/pages") ? json({ items: [] }) : undefined),
+    ]);
     seedProfile(runtime.env, oauthProfileAuth());
     const fetchWithAuth = createOauthFetch(runtime, "default", oauthProfileAuth());
     await fetchWithAuth("http://coco.test/pages");
@@ -92,7 +97,7 @@ describe("createOauthFetch", () => {
 
   it("refreshes proactively when the token is at/near expiry and persists the rotation", async () => {
     const { runtime, requests } = makeRuntime([
-      (url, init) =>
+      (url, _init) =>
         url.endsWith("/oauth/token")
           ? json({ access_token: "at_new", refresh_token: "rt_new", expires_in: 3600 })
           : undefined,
@@ -142,7 +147,7 @@ describe("createOauthFetch", () => {
   });
 
   it("lets the 401 stand when there is no refresh token (single retry, no loop)", async () => {
-    const { runtime, requests } = makeRuntime([(url) => json({ error: "Unauthorized" }, 401)]);
+    const { runtime, requests } = makeRuntime([(_url) => json({ error: "Unauthorized" }, 401)]);
     const auth = oauthProfileAuth({ refreshToken: undefined, expiresAt: undefined });
     seedProfile(runtime.env, auth);
     const fetchWithAuth = createOauthFetch(runtime, "default", auth);
@@ -198,10 +203,10 @@ describe("createOauthFetch", () => {
 
 describe("createContext credential precedence", () => {
   it("COCO_API_KEY beats the profile credential", async () => {
-    const { runtime, requests } = makeRuntime(
-      [() => json({ ok: true })],
-      { COCO_API_KEY: "coco_env_key", COCO_BASE_URL: "http://env.test" },
-    );
+    const { runtime, requests } = makeRuntime([() => json({ ok: true })], {
+      COCO_API_KEY: "coco_env_key",
+      COCO_BASE_URL: "http://env.test",
+    });
     seedProfile(runtime.env, oauthProfileAuth());
     const context = createContext(runtime, {});
     expect(context.credential.kind).toBe("key");
@@ -214,7 +219,9 @@ describe("createContext credential precedence", () => {
     const { runtime } = makeRuntime([], { COCO_BASE_URL: "http://env.test" });
     seedProfile(runtime.env, oauthProfileAuth());
     expect(createContext(runtime, {}).baseUrl).toBe("http://env.test");
-    expect(createContext(runtime, { baseUrl: "http://flag.test" }).baseUrl).toBe("http://flag.test");
+    expect(createContext(runtime, { baseUrl: "http://flag.test" }).baseUrl).toBe(
+      "http://flag.test",
+    );
   });
 
   it("falls back to the profile, then the localhost default", () => {

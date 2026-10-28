@@ -47,8 +47,14 @@ export function registerSearchCommands(root: Command, runtime: CliRuntime): void
       )
       .option("--space <slug>", "limit to one space ('personal' for your private context)")
       .option("--order-by <key>", "metadata key to order by")
-      .option("--desc", "descending order (with --order-by)")
-      .option("--limit <n>", "max rows", integer("--limit"))
+      .option("--sort <field>", "order by a page field instead: 'updated' (the page's last update)")
+      .option("--desc", "descending order (with --order-by or --sort)")
+      .option("--limit <n>", "rows per page (default 20, max 500)", integer("--limit"))
+      .option(
+        "--offset <n>",
+        "rows to skip; use the previous page's nextOffset",
+        integer("--offset"),
+      )
       .addHelpText(
         "after",
         [
@@ -58,11 +64,23 @@ export function registerSearchCommands(root: Command, runtime: CliRuntime): void
           "",
           "  coco query --filter stage=diligence --filter 'conviction-score>=0.7' \\",
           "    --space deals --order-by conviction-score --desc",
+          "",
+          "Results are paged: the table ends with a note when more exist, and with",
+          "--json the payload carries hasMore, nextOffset and total. Pass",
+          "--offset <nextOffset> for the next page.",
         ].join("\n"),
       ),
   ).action(
     async (
-      options: { filter: string[]; space?: string; orderBy?: string; desc?: boolean; limit?: number },
+      options: {
+        filter: string[];
+        space?: string;
+        orderBy?: string;
+        sort?: string;
+        desc?: boolean;
+        limit?: number;
+        offset?: number;
+      },
       command: Command,
     ) => {
       const context = contextFor(runtime, command);
@@ -72,14 +90,24 @@ export function registerSearchCommands(root: Command, runtime: CliRuntime): void
           EXIT.usage,
         );
       }
+      if (options.sort !== undefined && options.sort !== "updated") {
+        throw new CliError("--sort accepts only 'updated'.", EXIT.usage);
+      }
+      if (options.sort && options.orderBy) {
+        throw new CliError("Pass either --order-by or --sort, not both.", EXIT.usage);
+      }
       const filters = parseFilters(options.filter);
+      const ordered = Boolean(options.orderBy || options.sort);
       const result = await context.client.search.metadata({
         filters,
         space: options.space,
         limit: options.limit,
+        offset: options.offset,
         includeMetadata: true,
+        includeTotal: true,
         orderBy: options.orderBy,
-        order: options.orderBy ? (options.desc ? "desc" : "asc") : undefined,
+        sort: options.sort === "updated" ? "updated" : undefined,
+        order: ordered ? (options.desc ? "desc" : "asc") : undefined,
       });
       if (context.out.json) return context.out.emitJson(result);
       context.out.table(
@@ -87,11 +115,23 @@ export function registerSearchCommands(root: Command, runtime: CliRuntime): void
           path: item.path,
           title: item.title,
           ...(options.orderBy
-            ? { [options.orderBy]: ellipsize(JSON.stringify(item.metadata?.[options.orderBy]) ?? "", 24) }
+            ? {
+                [options.orderBy]: ellipsize(
+                  JSON.stringify(item.metadata?.[options.orderBy]) ?? "",
+                  24,
+                ),
+              }
             : {}),
           updated: formatWhen(item.updatedAt),
         })),
       );
+      if (result.hasMore && result.nextOffset !== null) {
+        const shown = `${result.offset + 1}–${result.offset + result.items.length}`;
+        const of = typeof result.total === "number" ? ` of ${result.total}` : "";
+        context.out.info(
+          `Showing ${shown}${of}. More exist: rerun with --offset ${result.nextOffset}.`,
+        );
+      }
     },
   );
 }
